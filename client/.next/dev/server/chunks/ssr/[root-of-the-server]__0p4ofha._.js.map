@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///home/ognjen/projects/restourant/client/app/page.tsx"],"sourcesContent":["export default function Home() {\n  return (\n    <main>\n      <h1 className=\"text-5xl text-gold-text text-center font-bold\">\n        Restaurant\n      </h1>\n    </main>\n  );\n}\n"],"names":["Home","className"],"mappings":";;;;;;AAAe,SAASA;IACtB,qBACE,qcAAC;kBACC,cAAA,qcAAC;YAAGC,WAAU;sBAAgD;;;;;;;;;;;AAKpE"}}]
+}

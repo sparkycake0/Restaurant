@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///home/ognjen/projects/restourant/client/app/page.tsx"],"sourcesContent":["\"use client\";\n\nimport Table from \"@/components/Table\";\n\nexport default function Home() {\n  return (\n    <main>\n      <h1 className=\"text-5xl text-gold-text text-center font-bold\">\n        Restaurant\n      </h1>\n      <div className=\"mt-12 flex-col flex gap-24 w-full justify-center items-center\"></div>\n    </main>\n  );\n}\n"],"names":["Home","className"],"mappings":";;;;;AAAA;;AAIe,SAASA;IACtB,qBACE,qcAAC;;0BACC,qcAAC;gBAAGC,WAAU;0BAAgD;;;;;;0BAG9D,qcAAC;gBAAIA,WAAU;;;;;;;;;;;;AAGrB"}},
+    {"offset": {"line": 40, "column": 0}, "map": {"version":3,"sources":["file:///home/ognjen/projects/restourant/client/node_modules/.pnpm/next@16.3.5_@types+node@20.19.43_babel-plugin-react-compiler@1.0.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/next/src/server/route-modules/app-page/vendored/ssr/react-jsx-dev-runtime.ts"],"sourcesContent":["module.exports = (\n  require('../../module.compiled') as typeof import('../../module.compiled')\n).vendored['react-ssr']!.ReactJsxDevRuntime\n"],"names":["module","exports","require","vendored","ReactJsxDevRuntime"],"mappings":"AAAAA,OAAOC,OAAO,GACZC,QAAQ,8PACRC,QAAQ,CAAC,YAAY,CAAEC,kBAAkB","ignoreList":[0]}}]
+}

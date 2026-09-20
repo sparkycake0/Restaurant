@@ -1,1 +1,15 @@
-./client/node_modules/
+# Next.js
+client/node_modules/
+client/.next/
+client/out/
+
+# Environment
+client/.env
+client/.env.local
+
+# Java
+server/target/
+
+# IDE
+.idea/
+.vscode/

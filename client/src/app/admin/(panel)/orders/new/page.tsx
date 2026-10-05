@@ -1,6 +1,6 @@
 "use client";
 import { Check, Plus, Search, StickyNote, Trash2 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Panel, Tabs } from "@/components/admin-shared";
 import {
@@ -14,7 +14,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { customers } from "@/data/customers";
-import type { Customer, Order } from "@/data/types";
+import type { Customer, Order, OrderItem } from "@/data/types";
 import { useToast } from "@/lib/toast";
 import { money } from "@/lib/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -24,16 +24,7 @@ import { tableService } from "@/api/table";
 import { Category } from "@/types/menu";
 import { ordersService } from "@/api/orders";
 
-type Line = {
-  id: number;
-  name: string;
-  price: number;
-  qty: number;
-  note?: string;
-};
-
 function NewOrder() {
-  const router = useRouter();
   const toast = useToast();
   const [tab, setTab] = useState<"dine" | "delivery">(
     useSearchParams().get("tab") === "delivery" ? "delivery" : "dine",
@@ -42,7 +33,7 @@ function NewOrder() {
   const [table, setTable] = useState<number | null>(0);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
-  const [lines, setLines] = useState<Line[]>([]);
+  const [lines, setLines] = useState<OrderItem[]>([]);
   const [c, setC] = useState({
     phone: "",
     name: "",
@@ -51,7 +42,7 @@ function NewOrder() {
     notes: "",
   });
   const [found, setFound] = useState<Customer | null>(null);
-  const [noteFor, setNoteFor] = useState<number | null>(null);
+  const [noteFor, setNoteFor] = useState<number | undefined>(undefined);
   const {
     data: tables,
     error: tablesError,
@@ -101,13 +92,13 @@ function NewOrder() {
       (!q || f.name.toLowerCase().includes(q.toLowerCase())),
   );
   const qty = (id: number) => lines.find((l) => l.id === id)?.qty ?? 0;
-  const setQty = (f: { id: number; name: string; price: number }, n: number) =>
+  const setQty = (id: number, name: string, price: number, n: number) =>
     setLines((ls) =>
       n <= 0
-        ? ls.filter((l) => l.id !== f.id)
-        : ls.some((l) => l.id === f.id)
-          ? ls.map((l) => (l.id === f.id ? { ...l, qty: n } : l))
-          : [...ls, { id: f.id, name: f.name, price: f.price, qty: n }],
+        ? ls.filter((l) => l.id !== id)
+        : ls.some((l) => l.id === id)
+          ? ls.map((l) => (l.id === id ? { ...l, qty: n } : l))
+          : [...ls, { id, name, price, qty: n }],
     );
   const subtotal = lines.reduce((n, l) => n + l.price * l.qty, 0);
   const valid =
@@ -124,7 +115,7 @@ function NewOrder() {
   }
 
   const save = useMutation({
-    mutationFn: (body) => ordersService.save(body),
+    mutationFn: (body: Order) => ordersService.save(body),
     mutationKey: queryKeys.orders,
   });
   function create() {
@@ -209,12 +200,15 @@ function NewOrder() {
                   {money(f.price)}
                 </span>
                 {qty(f.id) ? (
-                  <Stepper value={qty(f.id)} onChange={(n) => setQty(f, n)} />
+                  <Stepper
+                    value={qty(f.id)}
+                    onChange={(n) => setQty(f.id, f.name, f.price, n)}
+                  />
                 ) : (
                   <Button
                     size="sm"
                     variant="subtle"
-                    onClick={() => setQty(f, 1)}
+                    onClick={() => setQty(f.id, f.name, f.price, 1)}
                   >
                     <Plus size={15} />
                     Add
@@ -360,7 +354,7 @@ function NewOrder() {
                           {money(l.price * l.qty)}
                         </span>
                         <button
-                          onClick={() => setQty(l, 0)}
+                          onClick={() => setQty(l.id ?? 0, l.name, l.price, 0)}
                           aria-label={`Remove ${l.name}`}
                           className="text-danger"
                         >
@@ -382,7 +376,7 @@ function NewOrder() {
                             ),
                           )
                         }
-                        onBlur={() => setNoteFor(null)}
+                        onBlur={() => setNoteFor(undefined)}
                         placeholder="e.g. no onions"
                       />
                     ) : (

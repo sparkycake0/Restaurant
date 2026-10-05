@@ -45,8 +45,8 @@ public class Orders {
   @Column(updatable = false, nullable = true)
   String phone;
 
-  @ManyToOne
-  @JoinColumn(name = "dining_table_id")
+  @ManyToOne(optional = true)
+  @JoinColumn(name = "dining_table_id", nullable = true)
   DiningTable table;
 
   @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)

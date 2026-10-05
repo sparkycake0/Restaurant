@@ -39,26 +39,27 @@ export type OrderType = "dine_in" | "pickup" | "delivery";
 export type OrderStatus =
   "new" | "preparing" | "ready" | "delivering" | "done" | "cancelled";
 export type OrderItem = {
+  id?: number;
   name: string;
+  food: Food;
   price: number;
-  quantity: number;
+  qty: number;
   note?: string;
 };
 export type Order = {
-  id: string;
-  number: number;
+  id?: string;
+  number?: number;
   type: OrderType;
-  status: OrderStatus;
-  customerName: string;
+  status: OrderStatus | string;
+  name?: string;
   apartment?: string;
   phone?: string;
   address?: string;
   tableLabel?: string;
-  items: OrderItem[];
-  deliveryFee: number;
-  total: number;
-  note?: string;
-  createdAt: number; // milliseconds (Date.now())
+  orders: OrderItem[];
+  total?: number;
+  notes?: string;
+  createdAt?: number; // milliseconds (Date.now())
 };
 
 export type ReservationStatus =

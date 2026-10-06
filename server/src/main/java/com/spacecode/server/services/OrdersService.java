@@ -107,4 +107,37 @@ public class OrdersService {
     newOrder.setOrders(items);
     ordersRep.save(newOrder);
   }
+
+  public void delete(Long id) {
+    Orders order =
+        ordersRep.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    ordersRep.delete(order);
+  }
+
+  public void changeStatus(Long id) {
+    Orders order =
+        ordersRep.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+    if (order.getStatus() == OrderStatus.DONE) {
+      ordersRep.delete(order);
+      return;
+    }
+
+    OrderStatus[] statuses = OrderStatus.values();
+    int nextIndex = order.getStatus().ordinal() + 1;
+
+    if (nextIndex < statuses.length) {
+      order.setStatus(statuses[nextIndex]);
+      ordersRep.save(order);
+    }
+  }
+
+  public void setStatusCancelled(Long id) {
+    Orders order =
+        ordersRep.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    if (order.getStatus() != OrderStatus.CANCELLED) {
+      order.setStatus(OrderStatus.CANCELLED);
+      ordersRep.save(order);
+    }
+  }
 }

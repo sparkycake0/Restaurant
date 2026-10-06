@@ -1,11 +1,10 @@
 "use client";
-import { Menu, ShoppingBag, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { ButtonLink } from "@/components/ui";
-import { useCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -16,7 +15,6 @@ const LINKS = [
 export function Navbar({ name }: { name: string }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const { count } = useCart();
   useEffect(() => setOpen(false), [path]);
   const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
@@ -36,12 +34,8 @@ export function Navbar({ name }: { name: string }) {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Link href="/delivery" aria-label="Cart" className="relative grid h-10 w-10 place-items-center rounded-full text-fg hover:bg-white/5 lg:hidden">
-            <ShoppingBag size={22} />
-            {count > 0 && <span className="absolute right-0 top-0 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gold px-1 text-[11px] font-bold text-ink">{count}</span>}
-          </Link>
           <ButtonLink href="/delivery" className="hidden lg:inline-flex" variant="primary">
-            Order now{count > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[11px] font-bold text-ink">{count}</span>}
+            Order now
           </ButtonLink>
           <button type="button" onClick={() => setOpen((v) => !v)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} className="grid h-10 w-10 place-items-center rounded-full text-fg hover:bg-white/5 lg:hidden">
             {open ? <X size={24} /> : <Menu size={24} />}

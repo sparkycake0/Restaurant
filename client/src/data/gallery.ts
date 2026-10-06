@@ -1,8 +1,6 @@
-import type { GalleryImage } from "./types";
+import type { GalleryImage } from "@/types";
 
-export const galleryCategories = ["Food", "Restaurant", "Events", "Catering", "Team"];
-
-// PLACEHOLDER: replace with your gallery images.
+// SAMPLE DATA
 export const galleryImages: GalleryImage[] = [
   { id: "g1", image: "/images/pasta-truffle.svg", caption: "Fresh pasta", category: "Food" },
   { id: "g2", image: "/images/wine-cellar.svg", caption: "Wine cellar", category: "Restaurant" },

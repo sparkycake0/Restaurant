@@ -1,6 +1,6 @@
-import type { DiningTable } from "@/data/types";
+import type { DiningTable } from "@/types";
 
-export type TableState = "free" | "sel" | "res";
+type TableState = "free" | "sel" | "res";
 
 const STYLE = {
   free: {
@@ -31,8 +31,8 @@ const STYLE = {
 
 export const tableRadius = (t: DiningTable) => (t.seats <= 4 ? 34 : 42);
 export const tableWidth = (t: DiningTable) =>
-  (t.w ?? 3) > 0 ? t.w : Math.round(20 + t.seats * 18.5);
-export const TABLE_H = 52;
+  t.w && t.w > 0 ? t.w : Math.round(20 + t.seats * 18.5);
+const TABLE_H = 52;
 
 /** Seat centers relative to the table center. */
 export function seatPoints(
@@ -278,74 +278,5 @@ export function Room({
         Entrance
       </text>
     </>
-  );
-}
-
-type PlanProps = {
-  tables: DiningTable[];
-  reservedIds?: string[];
-  selectedIds?: string[];
-  onToggle?: (id: string) => void;
-  className?: string;
-};
-
-/** Read-only or selectable floor plan (public catering page + admin reservation form). */
-export function FloorPlan({
-  tables,
-  reservedIds = [],
-  selectedIds = [],
-  onToggle,
-  className,
-}: PlanProps) {
-  return (
-    <svg
-      viewBox={`0 0 ${ROOM_W} ${ROOM_H}`}
-      className={className}
-      role="group"
-      aria-label="Restaurant floor plan"
-    >
-      <Room>
-        {tables.map((t) => {
-          const state: TableState = reservedIds.includes(t.id)
-            ? "res"
-            : selectedIds.includes(t.id)
-              ? "sel"
-              : "free";
-          return (
-            <TableShape
-              key={t.id}
-              table={t}
-              state={state}
-              onClick={onToggle ? () => onToggle(t.id) : undefined}
-            />
-          );
-        })}
-      </Room>
-    </svg>
-  );
-}
-
-export function Legend() {
-  const dot = (bg: string, border: string, dashed = false) => (
-    <span
-      className="inline-block h-3.5 w-3.5 rounded-full"
-      style={{
-        background: bg,
-        border: `1.6px ${dashed ? "dashed" : "solid"} ${border}`,
-      }}
-    />
-  );
-  return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] text-muted">
-      <span className="inline-flex items-center gap-2">
-        {dot("#182720", "#8fc3ab")} Available
-      </span>
-      <span className="inline-flex items-center gap-2">
-        {dot("transparent", "#e5ad3c", true)} Selected
-      </span>
-      <span className="inline-flex items-center gap-2">
-        {dot("#222b27", "#39443e")} Reserved
-      </span>
-    </div>
   );
 }

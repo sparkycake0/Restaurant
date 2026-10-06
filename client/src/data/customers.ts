@@ -1,8 +1,8 @@
-import type { Customer } from "./types";
+import type { Customer } from "@/types";
 
 const daysAgo = (d: number) => Date.now() - d * 86400000;
 
-// PLACEHOLDER
+// SAMPLE DATA
 export const customers: Customer[] = [
   { id: "cu1", name: "Marko Petrovic", phone: "+381 60 000 0000", address: "Nemanjina 12, Leskovac", ordersCount: 4, lastOrderAt: daysAgo(0) },
   { id: "cu2", name: "Ana Markovic", phone: "+381 61 000 0000", address: "Vlade Zecevica 5, Leskovac", ordersCount: 2, lastOrderAt: daysAgo(7) },

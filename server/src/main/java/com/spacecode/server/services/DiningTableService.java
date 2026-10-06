@@ -59,4 +59,8 @@ public class DiningTableService {
     }
     return tableRep.saveAll(result);
   }
+
+  public List<DiningTable> getActiveTables() {
+    return tableRep.findByActiveTrue();
+  }
 }

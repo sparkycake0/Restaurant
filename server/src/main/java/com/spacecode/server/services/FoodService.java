@@ -109,4 +109,21 @@ public class FoodService {
 
     foodRepository.save(food);
   }
+
+  public List<FoodResponse> getAvailable() {
+    List<FoodResponse> foods =
+        foodRepository.findByAvailableTrue().stream()
+            .map(
+                food ->
+                    new FoodResponse(
+                        food.getId(),
+                        food.getName(),
+                        food.getPrice(),
+                        food.getDescription(),
+                        food.getCategory(),
+                        storageService.getImage(food.getImageKey()),
+                        food.isAvailable()))
+            .toList();
+    return foods;
+  }
 }

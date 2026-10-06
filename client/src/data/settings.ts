@@ -1,6 +1,6 @@
-import type { Settings } from "./types";
+import type { Settings } from "@/types";
 
-// PLACEHOLDER: restaurant info shown on the Info page, Contact page and footer.
+// SAMPLE DATA - restaurant info shown on Info, Contact, footer and the settings page.
 export const settings: Settings = {
   name: "Your Restaurant",
   address: "Main Street 12, 21000 City",
@@ -15,7 +15,6 @@ export const settings: Settings = {
     { day: "Saturday", open: true, from: "12:00", to: "00:00" },
     { day: "Sunday", open: false, from: "12:00", to: "22:00" },
   ],
-  delivery: { enabled: true, fee: 2, freeOver: 30, minOrder: 8, radiusKm: 8, eta: "35 - 50" },
-  catering: { minGuests: 10, noticeDays: 3, depositPercent: 20, requireDeposit: false },
+  delivery: { fee: 2, freeOver: 30, minOrder: 8, eta: "35 - 50" },
   socials: { instagram: "@yourrestaurant", facebook: "facebook.com/yourrestaurant", tiktok: "@yourrestaurant" },
 };

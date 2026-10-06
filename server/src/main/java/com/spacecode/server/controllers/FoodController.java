@@ -5,7 +5,6 @@ import com.spacecode.server.entities.Food;
 import com.spacecode.server.services.FoodService;
 import java.util.List;
 import java.util.Map;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,7 +19,6 @@ public class FoodController {
   }
 
   @PostMapping(consumes = "multipart/form-data")
-  @ResponseStatus(HttpStatus.OK)
   public Food save(
       @RequestParam(required = false) Integer id,
       @RequestParam String name,
@@ -38,18 +36,21 @@ public class FoodController {
   }
 
   @DeleteMapping
-  @ResponseStatus(HttpStatus.NO_CONTENT)
   public void delete(@RequestBody Map<String, Integer> req) {
     int id = req.get("id");
     foodService.delete(id);
   }
 
   @PatchMapping
-  @ResponseStatus(HttpStatus.NO_CONTENT)
   public void changeAvaialble(@RequestBody Map<String, String> req) {
     int id = Integer.parseInt(req.get("id"));
     boolean available = Boolean.parseBoolean(req.get("available"));
 
     foodService.changeAvailable(id, !available);
+  }
+
+  @GetMapping("/available")
+  public List<FoodResponse> getAvailable() {
+    return foodService.getAvailable();
   }
 }

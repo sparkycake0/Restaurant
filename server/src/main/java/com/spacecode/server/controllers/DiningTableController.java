@@ -26,4 +26,9 @@ public class DiningTableController {
   public List<DiningTable> saveLayout(@RequestBody TableLayoutRequest req) {
     return tableService.saveLayout(req);
   }
+
+  @GetMapping("/available")
+  public List<DiningTable> getActiveTables() {
+    return tableService.getActiveTables();
+  }
 }

@@ -3,7 +3,6 @@
 import { Circle, Move, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { Panel } from "@/components/admin-shared";
 import {
   ROOM_H,
@@ -23,146 +22,107 @@ import {
   Stepper,
   Toggle,
 } from "@/components/ui";
-
-import type { DiningTable } from "@/data/types";
 import { tableService } from "@/api/table";
 import { queryKeys } from "@/lib/queryKeys";
 import { useToast } from "@/lib/toast";
+import type { DiningTable } from "@/types";
+
+// Dashed gold box around the selected table
+function SelectionOutline({ table: t }: { table: DiningTable }) {
+  const r = t.shape === "round" ? tableRadius(t) + 30 : 0;
+  const w = t.shape === "round" ? r * 2 : tableWidth(t) + 30;
+  const h = t.shape === "round" ? r * 2 : 52 + 74;
+  const far = Math.max(...seatPoints(t, 11, 8).map((p) => Math.abs(p.y)), 0);
+
+  return (
+    <rect
+      x={t.x - w / 2}
+      y={t.y - Math.max(h / 2, far + 14)}
+      width={w}
+      height={Math.max(h, (far + 14) * 2)}
+      rx="6"
+      fill="none"
+      stroke="#e5ad3c"
+      strokeWidth="1.5"
+      strokeDasharray="5 4"
+      pointerEvents="none"
+    />
+  );
+}
 
 export default function TablesPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
-  // --------------------------------------------------
-  // SERVER DATA
-  // --------------------------------------------------
-
-  const {
-    data: serverTables,
-    error: tableError,
-    isLoading: tableLoading,
-  } = useQuery<DiningTable[]>({
-    queryFn: () => tableService.getAll(),
+  // ---- server data ----
+  const { data: serverTables, isLoading } = useQuery({
     queryKey: queryKeys.tables,
+    queryFn: tableService.getAll,
   });
-  console.log(serverTables);
 
-  // --------------------------------------------------
-  // LOCAL EDITING STATE
-  // --------------------------------------------------
-
+  // ---- local editing state (saved only when you press "Save layout") ----
   const [tables, setTables] = useState<DiningTable[]>([]);
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(null); // clientId of the selected table
   const [snap, setSnap] = useState(true);
 
   const svg = useRef<SVGSVGElement>(null);
+  const drag = useRef<{ clientId: string; dx: number; dy: number } | null>(
+    null,
+  );
 
-  const drag = useRef<{
-    clientId: string;
-    dx: number;
-    dy: number;
-  } | null>(null);
-
-  // --------------------------------------------------
-  // COPY SERVER DATA INTO LOCAL EDITING STATE
-  // --------------------------------------------------
-
+  // copy the server tables into the editing state
   useEffect(() => {
-    if (!serverTables) return;
-
-    setTables(
-      serverTables.map((table) => ({
-        ...table,
-        shape: table.shape.toLowerCase() as "round" | "rect",
-        clientId: crypto.randomUUID(),
-      })),
-    );
+    if (serverTables)
+      setTables(
+        serverTables.map((t) => ({ ...t, clientId: crypto.randomUUID() })),
+      );
   }, [serverTables]);
-  // --------------------------------------------------
-  // SELECTED TABLE
-  // --------------------------------------------------
 
   const t = tables.find((table) => table.clientId === sel);
 
-  // --------------------------------------------------
-  // UPDATE TABLE LOCALLY
-  // --------------------------------------------------
-
-  const patch = (clientId: string, changes: Partial<DiningTable>) => {
+  const patch = (clientId: string, changes: Partial<DiningTable>) =>
     setTables((current) =>
       current.map((table) =>
         table.clientId === clientId ? { ...table, ...changes } : table,
       ),
     );
-  };
 
-  // --------------------------------------------------
-  // HAS LAYOUT CHANGED?
-  // --------------------------------------------------
+  // changes of the selected table
+  const edit = (changes: Partial<DiningTable>) =>
+    t && patch(t.clientId, changes);
 
   const dirty =
     JSON.stringify(tables.map(({ clientId, ...table }) => table)) !==
     JSON.stringify(serverTables ?? []);
 
-  // --------------------------------------------------
-  // CONVERT MOUSE POSITION TO SVG POSITION
-  // --------------------------------------------------
-
+  // mouse position -> position inside the floor plan
   function toSvg(e: React.PointerEvent) {
     const s = svg.current!;
-
     const pt = s.createSVGPoint();
-
     pt.x = e.clientX;
     pt.y = e.clientY;
-
     return pt.matrixTransform(s.getScreenCTM()!.inverse());
   }
 
-  // --------------------------------------------------
-  // START DRAGGING
-  // --------------------------------------------------
-
   const down = (tb: DiningTable) => (e: React.PointerEvent) => {
     e.preventDefault();
-
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-
     const p = toSvg(e);
-
-    drag.current = {
-      clientId: tb.clientId,
-      dx: tb.x - p.x,
-      dy: tb.y - p.y,
-    };
-
+    drag.current = { clientId: tb.clientId, dx: tb.x - p.x, dy: tb.y - p.y };
     setSel(tb.clientId);
   };
 
-  // --------------------------------------------------
-  // MOVE TABLE
-  // --------------------------------------------------
-
   const move = (e: React.PointerEvent) => {
     if (!drag.current) return;
-
     const p = toSvg(e);
-
     const grid = snap ? 10 : 1;
-
     const x = Math.round((p.x + drag.current.dx) / grid) * grid;
-
     const y = Math.round((p.y + drag.current.dy) / grid) * grid;
-
     patch(drag.current.clientId, {
       x: Math.max(40, Math.min(ROOM_W - 40, x)),
       y: Math.max(40, Math.min(ROOM_H - 40, y)),
     });
   };
-
-  // --------------------------------------------------
-  // ADD TABLE
-  // --------------------------------------------------
 
   const add = (shape: "round" | "rect") => {
     const newTable: DiningTable = {
@@ -176,59 +136,27 @@ export default function TablesPage() {
       w: shape === "rect" ? 120 : 0,
       active: true,
     };
-
     setTables((current) => [...current, newTable]);
-
     setSel(newTable.clientId);
   };
-
-  // --------------------------------------------------
-  // DELETE TABLE LOCALLY
-  // --------------------------------------------------
 
   const remove = (clientId: string) => {
     setTables((current) =>
       current.filter((table) => table.clientId !== clientId),
     );
-
     setSel(null);
   };
 
-  // --------------------------------------------------
-  // SAVE LAYOUT
-  // --------------------------------------------------
-
   const tableSave = useMutation({
-    mutationFn: (tables: DiningTable[]) => tableService.saveLayout(tables),
-
-    mutationKey: queryKeys.tables,
-
+    mutationFn: tableService.saveLayout,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.tables,
-      });
-
+      queryClient.invalidateQueries({ queryKey: queryKeys.tables });
       toast("Floor plan saved");
     },
-
-    onError: () => {
-      toast("Failed to save floor plan", "error");
-    },
+    onError: () => toast("Failed to save floor plan", "error"),
   });
 
-  // --------------------------------------------------
-  // ERROR
-  // --------------------------------------------------
-
-  if (tableError) {
-    console.error(tableError);
-  }
-
-  // --------------------------------------------------
-  // LOADING
-  // --------------------------------------------------
-
-  if (tableLoading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center text-muted">
         Loading floor plan...
@@ -236,22 +164,14 @@ export default function TablesPage() {
     );
   }
 
-  // --------------------------------------------------
-  // PAGE
-  // --------------------------------------------------
-
   return (
     <div>
-      {/* -------------------------------------------- */}
-      {/* TOP BAR */}
-      {/* -------------------------------------------- */}
-
+      {/* Top bar */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <Button variant="light" onClick={() => add("round")}>
           <Circle size={15} />
           Add round table
         </Button>
-
         <Button variant="light" onClick={() => add("rect")}>
           <Square size={15} />
           Add rectangular table
@@ -273,13 +193,8 @@ export default function TablesPage() {
         </Button>
       </div>
 
-      {/* -------------------------------------------- */}
-      {/* FLOOR PLAN + EDITOR */}
-      {/* -------------------------------------------- */}
-
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        {/* FLOOR PLAN */}
-
+        {/* Floor plan */}
         <Panel>
           <div className="overflow-x-auto">
             <div className="min-w-[620px]">
@@ -288,27 +203,18 @@ export default function TablesPage() {
                 viewBox={`0 0 ${ROOM_W} ${ROOM_H}`}
                 className="h-auto w-full touch-none select-none"
                 onPointerMove={move}
-                onPointerUp={() => {
-                  drag.current = null;
-                }}
-                onPointerLeave={() => {
-                  drag.current = null;
-                }}
-                onPointerDown={(e) => {
-                  if (e.target === e.currentTarget) {
-                    setSel(null);
-                  }
-                }}
+                onPointerUp={() => (drag.current = null)}
+                onPointerLeave={() => (drag.current = null)}
+                onPointerDown={(e) =>
+                  e.target === e.currentTarget && setSel(null)
+                }
               >
                 <Room grid>
                   {tables.map((tb) => (
                     <g
                       key={tb.clientId}
                       onPointerDown={down(tb)}
-                      style={{
-                        cursor: "grab",
-                        opacity: tb.active ? 1 : 0.45,
-                      }}
+                      style={{ cursor: "grab", opacity: tb.active ? 1 : 0.45 }}
                     >
                       <TableShape
                         table={tb}
@@ -316,38 +222,7 @@ export default function TablesPage() {
                       />
                     </g>
                   ))}
-
-                  {/* SELECTED TABLE OUTLINE */}
-
-                  {t &&
-                    (() => {
-                      const r = t.shape === "round" ? tableRadius(t) + 30 : 0;
-
-                      const w =
-                        t.shape === "round" ? r * 2 : tableWidth(t) + 30;
-
-                      const h = t.shape === "round" ? r * 2 : 52 + 74;
-
-                      const far = Math.max(
-                        ...seatPoints(t, 11, 8).map((p) => Math.abs(p.y)),
-                        0,
-                      );
-
-                      return (
-                        <rect
-                          x={t.x - w / 2}
-                          y={t.y - Math.max(h / 2, far + 14)}
-                          width={w}
-                          height={Math.max(h, (far + 14) * 2)}
-                          rx="6"
-                          fill="none"
-                          stroke="#e5ad3c"
-                          strokeWidth="1.5"
-                          strokeDasharray="5 4"
-                          pointerEvents="none"
-                        />
-                      );
-                    })()}
+                  {t && <SelectionOutline table={t} />}
                 </Room>
               </svg>
             </div>
@@ -355,122 +230,80 @@ export default function TablesPage() {
 
           <p className="mt-3 flex items-center justify-center gap-2 text-center text-[13px] text-muted">
             <Move size={14} />
-            Drag tables to move them. Changes appear on the public catering page
-            after saving.
+            Drag tables to move them, then save the layout.
           </p>
         </Panel>
 
-        {/* TABLE EDITOR */}
-
+        {/* Table editor */}
         <Panel
           title={t ? `Table ${t.label}` : "Table"}
           sub={t ? "Selected" : "Select a table to edit it"}
         >
           {t ? (
             <div className="space-y-4">
-              {/* LABEL */}
-
               <Field label="Label">
                 <Input
                   value={t.label}
-                  onChange={(e) =>
-                    patch(t.clientId, {
-                      label: e.target.value,
-                    })
-                  }
+                  onChange={(e) => edit({ label: e.target.value })}
                   maxLength={8}
                 />
               </Field>
-
-              {/* SHAPE */}
 
               <Field label="Shape">
                 <Select
                   value={t.shape}
                   onChange={(e) =>
-                    patch(t.clientId, {
-                      shape: e.target.value as "round" | "rect",
-                    })
+                    edit({ shape: e.target.value as "round" | "rect" })
                   }
                 >
                   <option value="round">Round</option>
-
                   <option value="rect">Rectangular</option>
                 </Select>
               </Field>
 
-              {/* SEATS */}
-
               <div>
                 <p className="mb-1.5 text-[13px] font-semibold">Seats</p>
-
                 <Stepper
                   min={1}
                   value={t.seats}
-                  onChange={(n) =>
-                    patch(t.clientId, {
-                      seats: Math.min(12, n),
-                    })
-                  }
+                  onChange={(n) => edit({ seats: Math.min(12, n) })}
                 />
               </div>
-
-              {/* POSITION */}
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Position X">
                   <Input
                     type="number"
                     value={t.x}
-                    onChange={(e) =>
-                      patch(t.clientId, {
-                        x: Number(e.target.value),
-                      })
-                    }
+                    onChange={(e) => edit({ x: Number(e.target.value) })}
                   />
                 </Field>
-
                 <Field label="Position Y">
                   <Input
                     type="number"
                     value={t.y}
-                    onChange={(e) =>
-                      patch(t.clientId, {
-                        y: Number(e.target.value),
-                      })
-                    }
+                    onChange={(e) => edit({ y: Number(e.target.value) })}
                   />
                 </Field>
               </div>
-
-              {/* ACTIVE */}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">
                   Active (can be booked)
                 </span>
-
                 <Toggle
                   on={t.active}
-                  onChange={(value) =>
-                    patch(t.clientId, {
-                      active: value,
-                    })
-                  }
+                  onChange={(active) => edit({ active })}
                   label="Active"
                 />
               </div>
 
-              {/* DELETE */}
-
               <Button
                 variant="danger"
                 className="w-full"
-                onClick={() => {
-                  if (confirm(`Delete table ${t.label}?`)) {
-                    remove(t.clientId);
-                  }
-                }}
+                onClick={() =>
+                  confirm(`Delete table ${t.label}?`) && remove(t.clientId)
+                }
               >
                 <Trash2 size={15} />
                 Delete table
@@ -484,14 +317,10 @@ export default function TablesPage() {
         </Panel>
       </div>
 
-      {/* -------------------------------------------- */}
-      {/* ALL TABLES */}
-      {/* -------------------------------------------- */}
-
+      {/* All tables */}
       <h3 className="mb-3 mt-8 font-display text-xl text-cream">
         All tables ({tables.length})
       </h3>
-
       <div className="flex flex-wrap gap-2">
         {tables.map((table) => (
           <Chip

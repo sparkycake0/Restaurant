@@ -1,8 +1,8 @@
-import type { Staff } from "./types";
+import type { Staff } from "@/types";
 
 const hoursAgo = (h: number) => Date.now() - h * 3600000;
 
-// PLACEHOLDER
+// SAMPLE DATA
 export const staff: Staff[] = [
   { id: "s1", name: "Marko K.", username: "marko", role: "admin", active: true, lastLogin: hoursAgo(1) },
   { id: "s2", name: "Jelena S.", username: "jelena", role: "staff", active: true, lastLogin: hoursAgo(5) },

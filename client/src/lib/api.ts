@@ -1,38 +1,29 @@
-import { QueryClient, useQueryClient } from "@tanstack/react-query";
+import { queryClient } from "@/components/Provider";
 
-const baseURL = "http://localhost:8080";
-type ApiOptions = Omit<RequestInit, "body"> & {
-  body?: unknown;
-};
-export async function api<T>(
+const baseURL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+export const refresh = (queryKey: string[]) =>
+  queryClient.invalidateQueries({ queryKey });
+
+type ApiOptions = Omit<RequestInit, "body" | "headers"> & { body?: unknown };
+
+// Small fetch wrapper for the Spring Boot server.
+// Objects are sent as JSON, FormData (file upload) is sent as it is.
+export async function api<T = void>(
   endpoint: string,
-  options: ApiOptions = {},
+  { body, ...options }: ApiOptions = {},
 ): Promise<T> {
-  const { body, headers, ...rest } = options;
-
   const isFormData = body instanceof FormData;
 
   const res = await fetch(`${baseURL}/${endpoint}`, {
-    ...rest,
-    headers: {
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...headers,
-    },
-    body: isFormData
-      ? body
-      : body === undefined
-        ? undefined
-        : JSON.stringify(body),
+    ...options,
+    headers: isFormData ? undefined : { "Content-Type": "application/json" },
+    body:
+      body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 
-  if (!res.ok) {
-    const message = await res.text();
-    throw new Error(`${res.status}: ${message}`);
-  }
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${res.status}: ${text}`);
 
-  if (res.status === 204) {
-    return undefined as T;
-  }
-
-  return res.json() as Promise<T>;
+  // Spring `void` endpoints answer with an empty body (200 or 204)
+  return (text ? JSON.parse(text) : undefined) as T;
 }

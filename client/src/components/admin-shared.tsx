@@ -1,7 +1,7 @@
 "use client";
 import type { ReactNode } from "react";
 import { Card, Pill, type PillKind } from "@/components/ui";
-import type { OrderStatus, OrderType, ReservationStatus } from "@/data/types";
+import type { OrderStatus, OrderType, ReservationStatus } from "@/types";
 import { ORDER_STATUS_LABEL, TYPE_LABEL, cn } from "@/lib/utils";
 
 const TYPE_KIND: Record<OrderType, PillKind> = { delivery: "delivering", pickup: "gold", dine_in: "dine" };

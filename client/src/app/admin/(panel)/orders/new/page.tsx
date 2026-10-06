@@ -2,6 +2,7 @@
 import { Check, Plus, Search, StickyNote, Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Panel, Tabs } from "@/components/admin-shared";
 import {
   Button,
@@ -13,98 +14,75 @@ import {
   Stepper,
   Textarea,
 } from "@/components/ui";
+import { categoryService, foodService } from "@/api/menu";
+import { ordersService } from "@/api/orders";
+import { tableService } from "@/api/table";
 import { customers } from "@/data/customers";
-import type { Customer, Order, OrderItem } from "@/data/types";
+import { queryKeys } from "@/lib/queryKeys";
 import { useToast } from "@/lib/toast";
 import { money } from "@/lib/utils";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { categoryService, foodService } from "@/api/menu";
-import { queryKeys } from "@/lib/queryKeys";
-import { tableService } from "@/api/table";
-import { Category } from "@/types/menu";
-import { ordersService } from "@/api/orders";
+import type { Customer, OrderItem } from "@/types";
+
+const emptyCustomer = {
+  phone: "",
+  name: "",
+  address: "",
+  apartment: "",
+  notes: "",
+};
 
 function NewOrder() {
   const toast = useToast();
+
   const [tab, setTab] = useState<"dine" | "delivery">(
     useSearchParams().get("tab") === "delivery" ? "delivery" : "dine",
   );
   const [kind, setKind] = useState<"dine_in" | "pickup">("dine_in");
-  const [table, setTable] = useState<number | null>(0);
+  const [table, setTable] = useState(0);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [lines, setLines] = useState<OrderItem[]>([]);
-  const [c, setC] = useState({
-    phone: "",
-    name: "",
-    address: "",
-    apartment: "",
-    notes: "",
-  });
+  const [c, setC] = useState(emptyCustomer);
   const [found, setFound] = useState<Customer | null>(null);
-  const [noteFor, setNoteFor] = useState<number | undefined>(undefined);
-  const {
-    data: tables,
-    error: tablesError,
-    isLoading: tablesLoading,
-  } = useQuery({
-    queryFn: () => tableService.getAll(),
+  const [noteFor, setNoteFor] = useState<number | null>(null);
+
+  // ---- server data ----
+  const { data: tables } = useQuery({
     queryKey: queryKeys.tables,
+    queryFn: tableService.getActive,
   });
-  const {
-    data: menuItems,
-    error: menuItemsError,
-    isLoading: menuItemsLoading,
-  } = useQuery({
-    queryFn: () => foodService.getAll(),
+  const { data: menuItems } = useQuery({
     queryKey: queryKeys.foods,
+    queryFn: foodService.getAvailable,
   });
-  const {
-    data: categories,
-    error: categoriesError,
-    isLoading: categoriesLoading,
-  } = useQuery({
-    queryFn: () => categoryService.getAll(),
+  const { data: categories } = useQuery({
     queryKey: queryKeys.categories,
+    queryFn: categoryService.getAll,
   });
-  const [errors] = useState([menuItemsError, categoriesError, tablesError]);
-  const [loadings] = useState([
-    menuItemsLoading,
-    categoriesLoading,
-    tablesLoading,
-  ]);
-  loadings.forEach((e) => {
-    if (e) {
-      return (
-        <div className="w-screen h-screen absolute top-0 left-0 text-center text-4xl font-bold">
-          Loading...
-        </div>
-      );
-    }
-  });
-  errors.forEach((e) => {
-    if (e) console.log(e);
-  });
-  const dishes = menuItems?.filter(
-    (f) =>
-      f.available &&
-      (cat === "all" || f.category === cat) &&
-      (!q || f.name.toLowerCase().includes(q.toLowerCase())),
-  );
+
+  // ---- order lines ----
   const qty = (id: number) => lines.find((l) => l.id === id)?.qty ?? 0;
-  const setQty = (id: number, name: string, price: number, n: number) =>
-    setLines((ls) =>
-      n <= 0
-        ? ls.filter((l) => l.id !== id)
-        : ls.some((l) => l.id === id)
-          ? ls.map((l) => (l.id === id ? { ...l, qty: n } : l))
-          : [...ls, { id, name, price, qty: n }],
-    );
+
+  // set the amount of a dish (0 removes it)
+  const setQty = (id: number, n: number) =>
+    setLines((ls) => {
+      if (n <= 0) return ls.filter((l) => l.id !== id);
+      if (ls.some((l) => l.id === id))
+        return ls.map((l) => (l.id === id ? { ...l, qty: n } : l));
+      const food = menuItems?.find((f) => f.id === id);
+      return food
+        ? [...ls, { id, name: food.name, price: food.price, qty: n }]
+        : ls;
+    });
+
   const subtotal = lines.reduce((n, l) => n + l.price * l.qty, 0);
   const valid =
     lines.length > 0 &&
-    (tab === "dine" || (c.name.trim() && c.phone.trim() && c.address.trim()));
+    (tab === "dine" ||
+      Boolean(c.name.trim() && c.phone.trim() && c.address.trim()));
 
+  // ---- customer lookup (sample data) ----
+  // TODO(api): look the customer up on the server
   function findCustomer() {
     const digits = c.phone.replace(/\s/g, "");
     const hit =
@@ -114,19 +92,26 @@ function NewOrder() {
     if (!hit) toast("No customer with that phone yet", "error");
   }
 
+  // ---- create the order ----
   const save = useMutation({
-    mutationFn: (body: Order) => ordersService.save(body),
-    mutationKey: queryKeys.orders,
+    mutationFn: ordersService.save,
+    onSuccess: () => {
+      toast("Order created");
+      setLines([]);
+      setC(emptyCustomer);
+      setFound(null);
+    },
+    onError: () => toast("Could not create the order", "error"),
   });
+
   function create() {
-    const order = {
-      orders: lines,
-      table,
-      ...c,
-      type: tab === "dine" ? kind : tab,
+    save.mutate({
+      type: tab === "dine" ? kind : "delivery",
       status: "new",
-    };
-    save.mutate(order);
+      table: tab === "dine" && kind === "dine_in" ? table : 0,
+      ...c,
+      orders: lines,
+    });
   }
 
   return (
@@ -143,15 +128,7 @@ function NewOrder() {
         ]}
         active={tab}
         onChange={(id) => {
-          if (id === "dine") {
-            setC({
-              phone: "",
-              name: "",
-              address: "",
-              apartment: "",
-              notes: "",
-            });
-          }
+          if (id === "dine") setC(emptyCustomer);
           setTab(id as "dine" | "delivery");
         }}
       />
@@ -185,16 +162,14 @@ function NewOrder() {
             ))}
           </div>
           <ul className="mt-4 max-h-[720px] divide-y divide-line overflow-y-auto pr-1">
-            {dishes?.map((f) => (
+            {menuItems?.map((f) => (
               <li key={f.id} className="flex items-center gap-4 py-3">
                 <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[10px]">
                   <Photo src={f.image} alt={f.name} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{f.name}</p>
-                  <p className="text-[12.5px] text-muted">
-                    {(f.category as Category).name}
-                  </p>
+                  <p className="text-[12.5px] text-muted">{f.category.name}</p>
                 </div>
                 <span className="hidden font-semibold sm:block">
                   {money(f.price)}
@@ -202,13 +177,13 @@ function NewOrder() {
                 {qty(f.id) ? (
                   <Stepper
                     value={qty(f.id)}
-                    onChange={(n) => setQty(f.id, f.name, f.price, n)}
+                    onChange={(n) => setQty(f.id, n)}
                   />
                 ) : (
                   <Button
                     size="sm"
                     variant="subtle"
-                    onClick={() => setQty(f.id, f.name, f.price, 1)}
+                    onClick={() => setQty(f.id, 1)}
                   >
                     <Plus size={15} />
                     Add
@@ -237,12 +212,12 @@ function NewOrder() {
                 {kind === "dine_in" ? (
                   <Field label="Table">
                     <Select
-                      value={Number(table)}
+                      value={table}
                       onChange={(e) => setTable(Number(e.target.value))}
                     >
                       <option value="">Select a table</option>
                       {tables?.map((t) => (
-                        <option key={t.id} value={Number(t.id)}>
+                        <option key={t.id} value={t.id ?? 0}>
                           {t.label} ({t.seats} seats)
                         </option>
                       ))}
@@ -354,7 +329,7 @@ function NewOrder() {
                           {money(l.price * l.qty)}
                         </span>
                         <button
-                          onClick={() => setQty(l.id ?? 0, l.name, l.price, 0)}
+                          onClick={() => setQty(l.id, 0)}
                           aria-label={`Remove ${l.name}`}
                           className="text-danger"
                         >
@@ -376,7 +351,7 @@ function NewOrder() {
                             ),
                           )
                         }
-                        onBlur={() => setNoteFor(undefined)}
+                        onBlur={() => setNoteFor(null)}
                         placeholder="e.g. no onions"
                       />
                     ) : (

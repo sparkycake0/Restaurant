@@ -7,8 +7,10 @@ import com.spacecode.server.services.OrdersService;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,5 +38,23 @@ public class OrdersController {
     OrderStatus status = OrderStatus.valueOf(((String) req.get("status")).toUpperCase());
     Object orders = req.get("orders");
     ordersService.save(orders, tableId, phone, name, address, apartment, notes, type, status);
+  }
+
+  @DeleteMapping
+  public void delete(@RequestBody Map<String, Number> req) {
+    Long id = ((Number) req.get("id")).longValue();
+    ordersService.delete(id);
+  }
+
+  @PutMapping("/status")
+  public void changeStatus(@RequestBody Map<String, Number> req) {
+    Long id = ((Number) req.get("id")).longValue();
+    ordersService.changeStatus(id);
+  }
+
+  @PutMapping("/cancelled")
+  public void setStatusCancelled(@RequestBody Map<String, Number> req) {
+    Long id = ((Number) req.get("id")).longValue();
+    ordersService.setStatusCancelled(id);
   }
 }

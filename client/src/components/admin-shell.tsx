@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Logo } from "@/components/logo";
 import { ButtonLink } from "@/components/ui";
-import { cn, initials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: Home }, { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
@@ -20,7 +20,7 @@ const TITLES: Record<string, string> = {
 };
 
 // Sidebar (desktop) / slide-in menu (phone) + top bar around every staff page.
-export function AdminShell({ username, onLogout, children }: { username: string; onLogout: () => void; children: ReactNode }) {
+export function AdminShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [path]);
@@ -41,9 +41,9 @@ export function AdminShell({ username, onLogout, children }: { username: string;
         ))}
       </nav>
       <div className="m-4 flex items-center gap-3 border-t border-cream/10 px-2 pt-5">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold text-sm font-bold text-ink">{initials(username)}</span>
-        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-cream">{username}</p><p className="text-xs text-cream/55">Staff</p></div>
-        <button onClick={onLogout} aria-label="Log out" className="grid h-9 w-9 place-items-center rounded-full text-cream/60 hover:bg-white/10 hover:text-cream"><LogOut size={18} /></button>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold text-sm font-bold text-ink">AD</span>
+        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-cream">Admin</p><p className="text-xs text-cream/55">Staff</p></div>
+        <Link href="/admin/login" aria-label="Log out" className="grid h-9 w-9 place-items-center rounded-full text-cream/60 hover:bg-white/10 hover:text-cream"><LogOut size={18} /></Link>
       </div>
     </div>
   );

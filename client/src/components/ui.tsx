@@ -175,7 +175,7 @@ export function Chip({
 }
 
 /* ------------------------------ Forms ------------------------------------ */
-export const inputCls =
+const inputCls =
   "w-full rounded-[10px] border border-border bg-field px-4 text-[15px] text-fg outline-none transition-colors placeholder:text-muted focus:border-gold";
 export const Input = ({
   className,
@@ -234,21 +234,25 @@ export function Toggle({
   on,
   onChange,
   label,
+  disabled,
 }: {
   on: boolean;
   onChange?: (v: boolean) => void;
   label?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={on}
+      disabled={disabled}
       aria-label={label}
       onClick={() => onChange?.(!on)}
       className={cn(
         "relative h-6 w-11 shrink-0 rounded-full transition-colors",
         on ? "bg-ok" : "bg-[#3a4741]",
+        disabled ? "bg-muted/50" : "",
       )}
     >
       <span
@@ -321,7 +325,7 @@ export function Photo({
   label,
   className,
 }: {
-  src?: string;
+  src?: string | null;
   alt?: string;
   tone?: number;
   label?: string;
@@ -396,14 +400,6 @@ export function SectionTitle({
         )}
       </div>
       {action}
-    </div>
-  );
-}
-
-export function Empty({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted">
-      {children}
     </div>
   );
 }

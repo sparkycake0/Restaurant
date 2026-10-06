@@ -1,22 +1,27 @@
-import { Instagram } from "lucide-react";
 import type { Metadata } from "next";
 import { Container, PageHeader } from "@/components/page-header";
-import { GalleryGrid } from "@/components/gallery-grid";
+import { Photo } from "@/components/ui";
 import { galleryImages } from "@/data/gallery";
-import { settings } from "@/data/settings";
 
 export const metadata: Metadata = { title: "Gallery" };
+
 export default function GalleryPage() {
+  // TODO(api): replace galleryImages with images from your server
   return (
     <>
-      <PageHeader title="Gallery" sub="A look at our kitchen, our tables and the moments we have shared." />
-      <Container className="py-10 sm:py-14"><GalleryGrid images={galleryImages} /></Container>
-      <section className="bg-hero">
-        <Container className="flex flex-col items-start justify-between gap-6 py-12 sm:flex-row sm:items-center">
-          <div><h2 className="font-display text-3xl text-cream sm:text-4xl">See more on Instagram</h2><p className="mt-2 font-medium text-gold">{settings.socials.instagram}</p></div>
-          <span className="inline-flex h-14 items-center gap-2 rounded-full bg-gold px-7 font-semibold text-ink"><Instagram size={18} />Follow us</span>
-        </Container>
-      </section>
+      <PageHeader title="Gallery" sub="A look at our food, our rooms and our events." />
+      <Container className="py-12 sm:py-16">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {galleryImages.map((g) => (
+            <figure key={g.id}>
+              <div className="aspect-square overflow-hidden rounded-2xl">
+                <Photo src={g.image} alt={g.caption} />
+              </div>
+              <figcaption className="mt-2 text-sm text-muted">{g.caption}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </Container>
     </>
   );
 }

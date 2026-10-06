@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/inter";
 import "@fontsource/playfair-display/700.css";
 import "./globals.css";
-import { CartProvider } from "@/lib/cart";
 import { ToastProvider } from "@/lib/toast";
 import { Providers } from "@/components/Provider";
 
@@ -26,7 +25,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <ToastProvider>
-            <CartProvider>{children}</CartProvider>
+            {children}
           </ToastProvider>
         </Providers>
       </body>

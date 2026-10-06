@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/logo";
 import { Button, Card, Field, Input } from "@/components/ui";
-import { writeStorage } from "@/lib/useLocalStorage";
 
-// PLACEHOLDER LOGIN: any username and password is accepted and saved in localStorage.
-// TODO: replace with a real login request to your backend.
+// PLACEHOLDER LOGIN: any username and password is accepted.
+// TODO(api): send { username, password } to your backend and handle the response.
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -15,7 +14,6 @@ export default function LoginPage() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    writeStorage("user", { username, password });
     router.push("/admin");
   }
 

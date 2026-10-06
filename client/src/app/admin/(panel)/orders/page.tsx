@@ -1,8 +1,8 @@
 "use client";
 
 import { MapPin, Phone, Printer, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   OrderStatusPill,
   TableWrap,
@@ -11,18 +11,18 @@ import {
   TypePill,
 } from "@/components/admin-shared";
 import { Button, Card, Chip, Select } from "@/components/ui";
-import type { Order, OrderStatus, OrderType } from "@/data/types";
+import { ordersService } from "@/api/orders";
+import { queryKeys } from "@/lib/queryKeys";
 import { useToast } from "@/lib/toast";
 import {
   ORDER_STATUS_LABEL,
+  TYPE_LABEL,
   cn,
   money,
   nextStatus,
-  timeAgo,
 } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { ordersService } from "@/api/orders";
-import { queryKeys } from "@/lib/queryKeys";
+import type { Order, OrderStatus } from "@/types";
+import { refresh } from "@/lib/api";
 
 const STEPS: OrderStatus[] = [
   "new",
@@ -30,16 +30,11 @@ const STEPS: OrderStatus[] = [
   "ready",
   "delivering",
   "done",
+  "cancelled",
 ];
+const FILTERS = ["all", ...STEPS] as const;
 
-const FILTERS: ("all" | OrderStatus)[] = [
-  "all",
-  "new",
-  "preparing",
-  "ready",
-  "delivering",
-  "done",
-];
+const label = "text-[11.5px] font-bold uppercase tracking-wider text-muted";
 
 function Detail({
   order,
@@ -49,87 +44,79 @@ function Detail({
   onStatus: (status: OrderStatus) => void;
 }) {
   const next = nextStatus(order);
-  const idx = STEPS.indexOf(order.status as OrderStatus);
-
-  const subtotal = order.orders.reduce(
-    (total, item) => total + item.price * item.qty,
-    0,
-  );
-
-  const total = order.total ?? subtotal;
-
+  const current = STEPS.indexOf(order.status);
+  const deleteOrder = useMutation({
+    mutationFn: (id: number) => ordersService.delete(id),
+    mutationKey: queryKeys.orders,
+    onSuccess: () => {
+      refresh(queryKeys.orders);
+    },
+  });
+  const changeStatus = useMutation({
+    mutationFn: (id: number) => ordersService.nextStatus(id),
+    mutationKey: queryKeys.orders,
+    onSuccess: () => {
+      refresh(queryKeys.orders);
+    },
+  });
+  const setStatusCancelled = useMutation({
+    mutationFn: (id: number) => ordersService.setStatusCancelled(id),
+    mutationKey: queryKeys.orders,
+    onSuccess: () => {
+      refresh(queryKeys.orders);
+    },
+  });
   return (
     <Card className="p-6">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl text-cream">
-            Order #{order.number ?? order.id}{" "}
+            Order #{order.id}{" "}
             {order.tableLabel ? `for ${order.tableLabel}` : ""}
           </h2>
-
           <p className="mt-1 text-[13px] text-muted">
-            {order.type === "delivery"
-              ? "Delivery"
-              : order.type === "pickup"
-                ? "Pickup"
-                : "Dine-in"}{" "}
-            {order.createdAt ? `- placed ${timeAgo(order.createdAt)}` : ""}
+            {TYPE_LABEL[order.type]}
           </p>
         </div>
-
-        <OrderStatusPill status={order.status as OrderStatus} />
+        <OrderStatusPill status={order.status} />
       </div>
 
       <div className="mt-5 space-y-2.5 border-t border-line pt-5 text-sm">
-        <p className="text-[11.5px] font-bold uppercase tracking-wider text-muted">
-          Customer
-        </p>
-
+        <p className={label}>Customer</p>
         {order.name && (
           <p className="flex items-center gap-3">
             <User size={16} className="text-gold-text" />
             {order.name}
           </p>
         )}
-
         {order.phone && (
           <p className="flex items-center gap-3">
             <Phone size={16} className="text-gold-text" />
             <a href={`tel:${order.phone}`}>{order.phone}</a>
           </p>
         )}
-
         {(order.address || order.tableLabel) && (
           <p className="flex items-start gap-3">
             <MapPin size={16} className="mt-0.5 shrink-0 text-gold-text" />
-
-            {order.address ?? `Table ${order.tableLabel}`}
+            {order.address || `Table ${order.tableLabel}`}
           </p>
         )}
-
         {order.apartment && (
           <p className="text-muted">Apartment: {order.apartment}</p>
         )}
       </div>
 
       <div className="mt-5 border-t border-line pt-5">
-        <p className="mb-3 text-[11.5px] font-bold uppercase tracking-wider text-muted">
-          Items
-        </p>
-
+        <p className={cn(label, "mb-3")}>Items</p>
         <ul className="space-y-3 text-sm">
-          {order.orders.map((item, index) => (
-            <li key={`${item.id}-${index}`}>
-              <div className="flex justify-between gap-3">
-                <span className="font-semibold">
+          {order.orders.map((item, i) => (
+            <li key={i}>
+              <div className="flex justify-between gap-3 font-semibold">
+                <span>
                   {item.qty}x {item.name}
                 </span>
-
-                <span className="font-semibold">
-                  {money(item.price * item.qty)}
-                </span>
+                <span>{money(item.price * item.qty)}</span>
               </div>
-
               {item.note && (
                 <p className="mt-1.5 rounded-lg bg-gold-soft px-3 py-1.5 text-xs font-medium text-gold-text">
                   Note: {item.note}
@@ -146,47 +133,38 @@ function Detail({
         )}
       </div>
 
-      <dl className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
-        <div className="flex justify-between text-muted">
-          <dt>Subtotal</dt>
-          <dd>{money(subtotal)}</dd>
-        </div>
-
-        <div className="flex justify-between text-lg font-bold">
-          <dt>Total</dt>
-          <dd className="text-cream">{money(total)}</dd>
-        </div>
-      </dl>
+      <p className="mt-5 flex justify-between border-t border-line pt-4 text-lg font-bold">
+        <span>Total</span>
+        <span className="text-cream">{money(order.total)}</span>
+      </p>
 
       {order.status !== "cancelled" && (
         <ol className="mt-6 flex items-start justify-between">
-          {STEPS.map((step, index) => (
+          {STEPS.map((step, i) => (
             <li
               key={step}
               className="relative flex flex-1 flex-col items-center text-center"
             >
-              {index > 0 && (
+              {i > 0 && (
                 <span
                   className={cn(
                     "absolute right-1/2 top-[9px] h-0.5 w-full",
-                    index <= idx ? "bg-gold" : "bg-border",
+                    i <= current ? "bg-gold" : "bg-border",
                   )}
                 />
               )}
-
               <span
                 className={cn(
                   "relative z-10 h-[18px] w-[18px] rounded-full border-2",
-                  index <= idx
+                  i <= current
                     ? "border-gold bg-gold"
                     : "border-border bg-card",
                 )}
               />
-
               <span
                 className={cn(
                   "mt-2 text-[10.5px]",
-                  index === idx ? "font-bold text-cream" : "text-muted",
+                  i === current ? "font-bold text-cream" : "text-muted",
                 )}
               >
                 {step === "delivering"
@@ -204,25 +182,21 @@ function Detail({
             variant="gold"
             size="lg"
             className="w-full"
-            onClick={() => onStatus(next.to)}
+            onClick={() => {
+              changeStatus.mutate(order.id);
+              onStatus(order.status);
+            }}
           >
             {next.label}
           </Button>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="light" onClick={() => window.print()}>
-            <Printer size={16} />
-            Print ticket
-          </Button>
-
+        <div className="flex flex-col gap-3">
           {order.status !== "cancelled" && order.status !== "done" ? (
             <Button
               variant="danger"
               onClick={() => {
-                if (window.confirm("Cancel this order?")) {
-                  onStatus("cancelled");
-                }
+                setStatusCancelled.mutate(order.id);
               }}
             >
               Cancel order
@@ -230,33 +204,37 @@ function Detail({
           ) : (
             <span />
           )}
+          <Button
+            onClick={() => deleteOrder.mutate(order.id)}
+            variant="dangerFill"
+          >
+            Delete order
+          </Button>
+          <Button variant="light" onClick={() => window.print()}>
+            <Printer size={16} />
+            Print ticket
+          </Button>
         </div>
       </div>
 
+      {/* What gets printed */}
       <div className="print-area hidden print:block">
         <h1 style={{ fontSize: 22, fontWeight: 700 }}>
-          Order #{order.number ?? order.id} - {order.type}
+          Order #{order.id} - {order.type}
         </h1>
-
         <p>
-          {order.name ?? ""} {order.phone ?? ""}{" "}
-          {order.address ?? order.tableLabel ?? ""}
+          {order.name} {order.phone} {order.address || order.tableLabel}
         </p>
-
         <hr />
-
-        {order.orders.map((item, index) => (
-          <p key={`${item.id}-${index}`} style={{ fontSize: 18 }}>
+        {order.orders.map((item, i) => (
+          <p key={i} style={{ fontSize: 18 }}>
             {item.qty}x {item.name}
             {item.note ? ` (${item.note})` : ""}
           </p>
         ))}
-
         {order.notes && <p>Note: {order.notes}</p>}
-
         <hr />
-
-        <p>Total {money(total)}</p>
+        <p>Total {money(order.total)}</p>
       </div>
     </Card>
   );
@@ -265,41 +243,28 @@ function Detail({
 export default function OrdersPage() {
   const toast = useToast();
 
-  const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [type, setType] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  const {
-    data: orders,
-    error: ordersError,
-    isLoading: ordersLoading,
-  } = useQuery({
-    queryFn: () => ordersService.getAll(),
+  const { data: orders } = useQuery({
     queryKey: queryKeys.orders,
+    queryFn: ordersService.getAll,
   });
-  console.log(ordersError);
-  console.log(orders);
 
-  const rows = useMemo(() => {
-    return (orders ?? [])
-      .filter(
-        (order) =>
-          (filter === "all" || order.status === filter) &&
-          (type === "all" || order.type === type),
-      )
-      .sort((a, b) => (b.number ?? 0) - (a.number ?? 0));
-  }, [orders, filter, type]);
+  // newest first
+  const rows = (orders ?? [])
+    .filter(
+      (o) =>
+        (filter === "all" || o.status === filter) &&
+        (type === "all" || o.type === type),
+    )
+    .sort((a, b) => Number(b.id) - Number(a.id));
 
-  useEffect(() => {
-    if (!selectedId || !rows.some((order) => order.id === selectedId)) {
-      setSelectedId(rows[0]?.id ?? null);
-    }
-  }, [rows, selectedId]);
-  const selected = rows.find((order) => order.id === selectedId);
+  const selected = rows.find((o) => o.id === selectedId) ?? rows[0];
 
-  const setStatus = (id: string, status: OrderStatus) => {
-    toast("Order updated");
-  };
+  // TODO(api): the server has no endpoint for changing an order's status yet
+  const setStatus = () => toast("Order updated");
 
   return (
     <div>
@@ -313,7 +278,7 @@ export default function OrdersPage() {
               count={
                 status === "all"
                   ? orders?.length
-                  : orders?.filter((order) => order.status === status).length
+                  : orders?.filter((o) => o.status === status).length
               }
             >
               {status === "all" ? "All" : ORDER_STATUS_LABEL[status]}
@@ -323,7 +288,7 @@ export default function OrdersPage() {
 
         <Select
           value={type}
-          onChange={(event) => setType(event.target.value)}
+          onChange={(e) => setType(e.target.value)}
           className="w-full lg:w-[190px]"
           aria-label="Order type"
         >
@@ -343,58 +308,35 @@ export default function OrdersPage() {
                 <Th>Customer</Th>
                 <Th>Type</Th>
                 <Th>Total</Th>
-                <Th>Time</Th>
                 <Th>Status</Th>
               </tr>
             </thead>
-
             <tbody>
-              {rows.map((order) => (
+              {rows.map((o) => (
                 <tr
-                  key={order.id}
-                  onClick={() => setSelectedId(order.id ?? null)}
+                  key={o.id}
+                  onClick={() => setSelectedId(o.id)}
                   className={cn(
                     "cursor-pointer transition-colors hover:bg-white/[0.03]",
-                    order.id === selectedId && "bg-gold-soft/60",
+                    o.id === selected?.id && "bg-gold-soft/60",
                   )}
                 >
-                  <Td className="font-bold">#{order.number ?? order.id}</Td>
-
+                  <Td className="font-bold">#{o.id}</Td>
                   <Td>
                     <p className="font-bold text-cream">
-                      {order.name === "" ? "Name not specified" : order.name}
+                      {o.name || "Name not specified"}
                     </p>
-
                     <p className="text-xs text-muted">
-                      {order.phone ??
-                        (order.tableLabel
-                          ? `Table ${order.tableLabel}`
-                          : "Dine-in")}
+                      {o.phone ||
+                        (o.tableLabel ? `Table ${o.tableLabel}` : "Dine-in")}
                     </p>
                   </Td>
-
                   <Td>
-                    <TypePill type={order.type.toLowerCase() as OrderType} />
+                    <TypePill type={o.type} />
                   </Td>
-
-                  <Td className="font-semibold">
-                    {money(
-                      order.total ??
-                        order.orders.reduce(
-                          (sum, item) => (sum += item.food.price * item.qty),
-                          0,
-                        ),
-                    )}
-                  </Td>
-
-                  <Td className="text-muted">
-                    {order.createdAt ? timeAgo(order.createdAt) : "-"}
-                  </Td>
-
+                  <Td className="font-semibold">{money(o.total)}</Td>
                   <Td>
-                    <OrderStatusPill
-                      status={order.status.toLowerCase() as OrderStatus}
-                    />
+                    <OrderStatusPill status={o.status} />
                   </Td>
                 </tr>
               ))}
@@ -410,16 +352,11 @@ export default function OrdersPage() {
           </TableWrap>
 
           <p className="mt-4 text-[13px] text-muted">
-            Showing {rows.length} of {orders?.length}
+            Showing {rows.length} of {orders?.length ?? 0}
           </p>
         </div>
 
-        {selected && (
-          <Detail
-            order={selected}
-            onStatus={(status) => setStatus(selected.id!, status)}
-          />
-        )}
+        {selected && <Detail order={selected} onStatus={setStatus} />}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CategoryService {
-  public final CategoryRepository categoryRep;
+  private final CategoryRepository categoryRep;
 
   public CategoryService(CategoryRepository categoryRep) {
     this.categoryRep = categoryRep;

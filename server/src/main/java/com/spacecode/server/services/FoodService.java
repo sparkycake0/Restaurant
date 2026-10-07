@@ -111,6 +111,7 @@ public class FoodService {
   }
 
   public List<FoodResponse> getAvailable() {
+
     List<FoodResponse> foods =
         foodRepository.findByAvailableTrue().stream()
             .map(
@@ -124,6 +125,7 @@ public class FoodService {
                         storageService.getImage(food.getImageKey()),
                         food.isAvailable()))
             .toList();
+
     return foods;
   }
 }

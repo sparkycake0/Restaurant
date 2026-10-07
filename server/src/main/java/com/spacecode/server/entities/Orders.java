@@ -28,26 +28,26 @@ import lombok.Setter;
 public class Orders {
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
-  Long id;
+  private Long id;
 
   @Column(updatable = false, nullable = true)
-  String address;
+  private String address;
 
   @Column(updatable = false, nullable = true)
-  String apartment;
+  private String apartment;
 
   @Column(updatable = false, nullable = true)
-  String name;
+  private String name;
 
   @Column(updatable = false, nullable = true)
-  String notes;
+  private String notes;
 
   @Column(updatable = false, nullable = true)
-  String phone;
+  private String phone;
 
   @ManyToOne(optional = true)
   @JoinColumn(name = "dining_table_id", nullable = true)
-  DiningTable table;
+  private DiningTable table;
 
   @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
   private List<OrderItem> orders = new ArrayList<>();

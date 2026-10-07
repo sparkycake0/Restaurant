@@ -80,9 +80,10 @@ export type GalleryImage = {
 export type ReservationStatus =
   "pending" | "confirmed" | "seated" | "cancelled";
 export type Reservation = {
-  id: string;
+  id?: string;
   date: string; // YYYY-MM-DD
-  time: string; // HH:mm
+  start: string;
+  end: string;
   eventType: string;
   guests: number;
   customerName: string;
@@ -90,6 +91,7 @@ export type Reservation = {
   email?: string;
   notes?: string;
   status: ReservationStatus;
+  table: DiningTable[] | number[] | undefined;
 };
 
 export type Customer = {

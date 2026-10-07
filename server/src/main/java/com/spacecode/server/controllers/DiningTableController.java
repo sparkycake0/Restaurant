@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("tables")
 @RequiredArgsConstructor
 public class DiningTableController {
-  public final DiningTableService tableService;
+  private final DiningTableService tableService;
 
   @GetMapping
   public List<DiningTable> getTables() {

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/orders")
 @RequiredArgsConstructor
 public class OrdersController {
-  public final OrdersService ordersService;
+  private final OrdersService ordersService;
 
   @GetMapping
   public List<OrderResponse> getAll() {

@@ -3,4 +3,5 @@ export const queryKeys = {
   foods: ["food"],
   orders: ["order"],
   tables: ["tables"],
+  reservations: ["reservations"],
 };

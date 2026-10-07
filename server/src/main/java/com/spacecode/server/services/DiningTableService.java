@@ -4,6 +4,7 @@ import com.spacecode.server.dtos.DiningTableRequest;
 import com.spacecode.server.dtos.TableLayoutRequest;
 import com.spacecode.server.entities.DiningTable;
 import com.spacecode.server.repositories.DiningTableRepository;
+import com.spacecode.server.repositories.ReservationRepository;
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class DiningTableService {
-  public final DiningTableRepository tableRep;
+  private final DiningTableRepository tableRep;
+  private final ReservationRepository reservationRep;
 
   public List<DiningTable> findAll() {
     return tableRep.findAll();

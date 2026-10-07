@@ -20,9 +20,9 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class OrdersService {
-  public final OrdersRepository ordersRep;
-  public final DiningTableRepository tableRep;
-  public final FoodRepository foodRep;
+  private final OrdersRepository ordersRep;
+  private final DiningTableRepository tableRep;
+  private final FoodRepository foodRep;
 
   public List<OrderResponse> getAll() {
     return ordersRep.findAll().stream()

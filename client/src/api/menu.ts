@@ -42,5 +42,5 @@ export const foodService = {
       method: "PATCH",
       body: { id: food.id, available: food.available },
     }),
-  getAvailable: () => api<Food[]>("food/available"),
+  getAvailable: () => api<Food[]>(`food/available`),
 };

@@ -6,7 +6,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
-import { Minus, Plus } from "lucide-react";
+import { Check, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------ Buttons ---------------------------------- */
@@ -403,3 +403,7 @@ export function SectionTitle({
     </div>
   );
 }
+type MultiSelectOption = {
+  label: string;
+  value: string;
+};

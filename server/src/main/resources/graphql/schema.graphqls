@@ -1,0 +1,185 @@
+enum TableShape {
+  ROUND
+  RECT
+}
+enum OrderType {
+  DINE_IN
+  PICKUP
+  DELIVERY
+}
+
+enum OrderStatus {
+  NEW
+  PREPARING
+  READY
+  DELIVERING
+  DONE
+  CANCELLED
+}
+
+enum ReservationEvent {
+  DINNER
+  LUNCH
+  BIRTHDAY
+  ANNIVERSARY
+  CORPORATE
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  SEATED
+  CANCELLED
+}
+
+# ---------------------------------- types ----------------------------------
+
+type Category {
+  id: Int!
+  name: String!
+}
+
+type Food {
+  id: Int!
+  name: String!
+  description: String!
+  price: Int!
+  category: Category!
+  "Data URL (data:image/...;base64,...), only loaded when you ask for it"
+  image: String
+  available: Boolean!
+}
+
+type DiningTable {
+  id: Int!
+  label: String!
+  shape: TableShape!
+  seats: Int!
+  x: Int!
+  y: Int!
+  w: Int!
+  active: Boolean!
+}
+
+type OrderItem {
+  "The id of the food"
+  id: Int!
+  name: String!
+  price: Int!
+  qty: Int!
+  note: String
+}
+
+type Order {
+  id: Int!
+  type: OrderType!
+  status: OrderStatus!
+  name: String
+  phone: String
+  address: String
+  apartment: String
+  tableLabel: String
+  notes: String
+  orders: [OrderItem!]!
+  total: Float!
+}
+
+# ---------------------------------- inputs ---------------------------------
+
+input FoodInput {
+  "Leave empty to create a new dish"
+  id: Int
+  name: String!
+  price: Int!
+  categoryId: Int!
+  description: String!
+  "New image as a data URL. Leave empty to keep the current image."
+  image: String
+  available: Boolean!
+}
+
+input OrderItemInput {
+  foodId: Int!
+  qty: Int!
+  note: String
+}
+
+input OrderInput {
+  type: OrderType!
+  status: OrderStatus!
+  "Leave empty (or 0) when the order has no table"
+  tableId: Int
+  name: String
+  phone: String
+  address: String
+  apartment: String
+  notes: String
+  items: [OrderItemInput!]!
+}
+
+input TableInput {
+  "Leave empty for a new table"
+  id: Int
+  label: String!
+  shape: TableShape!
+  seats: Int!
+  x: Int!
+  y: Int!
+  w: Int!
+  active: Boolean!
+}
+
+input ReservationInput {
+  customerName: String!
+  phone: String!
+  email: String
+  "YYYY-MM-DD"
+  startDate: String!
+  "YYYY-MM-DD"
+  endDate: String!
+  "HH:mm"
+  startTime: String!
+  "HH:mm"
+  endTime: String!
+  tableIds: [Int!]!
+  guests: Int!
+  eventType: ReservationEvent!
+  status: ReservationStatus!
+  notes: String
+}
+input TimeRangeInput {
+  startDate: String!
+  startTime: String!
+  endDate: String!
+  endTime: String!
+}
+
+# --------------------------------- operations ------------------------------
+
+type Query {
+  categories: [Category!]!
+  foods: [Food!]!
+  availableFoods: [Food!]!
+  orders: [Order!]!
+  tables: [DiningTable!]!
+  activeTables(range: TimeRangeInput): [DiningTable!]!
+}
+type Mutation {
+  saveCategory(name: String!): Category!
+  deleteCategory(id: Int!): Boolean!
+
+  saveFood(input: FoodInput!): Food!
+  deleteFood(id: Int!): Boolean!
+  setFoodAvailable(id: Int!, available: Boolean!): Boolean!
+
+  createOrder(input: OrderInput!): Boolean!
+  deleteOrder(id: Int!): Boolean!
+  "Moves the order to its next status (an order that is already DONE is deleted)"
+  advanceOrder(id: Int!): Boolean!
+  cancelOrder(id: Int!): Boolean!
+
+  "Replaces the whole floor plan, tables missing from the list are deleted"
+  saveTableLayout(tables: [TableInput!]!): [DiningTable!]!
+
+  createReservation(input: ReservationInput!): Boolean!
+}

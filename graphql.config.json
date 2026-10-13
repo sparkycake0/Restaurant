@@ -1,0 +1,4 @@
+{
+  "schema": "./server/src/main/resources/graphql/**/*.graphqls",
+  "documents": ["./server/src/main/resources/graphql/**/*.graphql"]
+}
